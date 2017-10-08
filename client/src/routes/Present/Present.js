@@ -1,10 +1,8 @@
 import React, { Component } from 'react';
 import {
-  BrowserRouter as Router,
-  Route,
-  Link
+  Redirect
 } from 'react-router-dom'
-import { Mic } from 'react-feather'
+import { Mic, Square } from 'react-feather'
 import './styles.css'
 import makeblob from './makeblob'
 var ReactToastr = require("react-toastr");
@@ -18,9 +16,12 @@ export default class Present extends Component {
     recording: false,
     emotion: 'neutral',
     wpm: 0,
-    fillers: 0
+    fillers: 0,
+    redirect: false
   }
   async componentDidMount() {
+    this._wpms = {}
+    this._emotions = {}
     window.Initialize(SDK => {
       this._recognizer = window.RecognizerSetup(SDK)
     })
@@ -34,10 +35,16 @@ export default class Present extends Component {
 
     }
   }
+  componentWillUnmount() {
+    clearInterval(this._timerInterval)
+    clearInterval(this._canvasInterval)
+  }
   handleRecord = () => {
+    const { recording } = this.state
+
     this.setState({ recording: true })
 
-    setInterval(() => {
+    this._timerInterval = setInterval(() => {
       this.setState({ elapsed: this.state.elapsed + 1 })
     }, 1000)
 
@@ -45,7 +52,7 @@ export default class Present extends Component {
       const { name } = event
 
       if(name === 'SpeechSimplePhraseEvent') {
-        const { DisplayText, Duration } = event.result
+        const { DisplayText, Duration, Offset } = event.result
         const words = DisplayText.toLowerCase().split(' ')
         let fillers = 0;
         for(let i = 0; i < words.length; i++) {
@@ -53,11 +60,14 @@ export default class Present extends Component {
               fillers++
             }
         }
+        const wpm = Math.round(words.length / (Duration / 60) * 10000000)
+        this._wpms[Offset / 10000000] = wpm
+        this.setState({ wpm })
         this.setState({ fillers: this.state.fillers + fillers })
       }
 
       if(name === 'RecognitionEndedEvent') {
-        console.log('ended')
+        this.setState({ redirect: true })
       }
     })
     .On(() => {
@@ -66,7 +76,7 @@ export default class Present extends Component {
     (error) => {
       console.error(error);
     })
-    setInterval(() => {
+    this._canvasInterval = setInterval(() => {
       const video = document.querySelector('video');
       const canvas = document.querySelector('canvas')
       const ctx = canvas.getContext('2d')
@@ -92,6 +102,11 @@ export default class Present extends Component {
           Object.entries(result[0].scores).map(([key, value]) => {
             if(value === maxScore) {
               this.setState({ emotion: key})
+              if(this._emotions[key]) {
+                this._emotions[key]++
+              } else {
+                this._emotions[key] = 1
+              }
               return
             }
           })
@@ -99,13 +114,30 @@ export default class Present extends Component {
       })
     }, 2000)
   }
+  handleEnd = () => {
+    this.setState({ redirect: true })
+  }
   render() {
-    const { recording, elapsed, emotion, fillers } = this.state
+    const { recording, elapsed, wpm, emotion, fillers } = this.state
     const minutes = Math.floor(elapsed / 60).toString().padStart(2, '0')
     const seconds = (elapsed % 60).toString().padStart(2, '0')
 
+    if(this.state.redirect) {
+      return (
+        <Redirect to={{
+          pathname: '/graph',
+          state: {
+            wpms: this._wpms,
+            emotions: this._emotions,
+            fillers,
+          }
+        }}/>
+      )
+    }
+
     return (
       <div className='container'>
+        <h1 className='logo'>Stage Hand</h1>
         <ToastContainer ref={(input) => {this.container = input;}}
           toastMessageFactory={ToastMessageFactory}
           className="toast-top-right"
@@ -121,7 +153,7 @@ export default class Present extends Component {
               </div>
               <div className='stat'>
                 <h4 className='stat-title'>WPM</h4>
-                <p className='stat-item'>70</p>
+                <p className='stat-item'>{wpm}</p>
               </div>
               <div className='stat'>
                 <h4 className='stat-title'>Fillers</h4>
@@ -133,8 +165,18 @@ export default class Present extends Component {
             </div>
           </div>
         }
-        <button className='record-btn' onClick={this.handleRecord}>
-          <Mic color={'white'} size={30} />
+        <button className='record-btn' onClick={() => {
+            if(recording) {
+              this.handleEnd()
+            } else {
+              this.handleRecord()
+            }
+          }}>
+          {recording ?
+            <Square color={'white'} size={30} />
+            :
+            <Mic color={'white'} size={30} />
+          }
         </button>
       </div>
     )

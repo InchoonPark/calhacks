@@ -2,13 +2,51 @@
   display: flex;
   flex: 1;
   padding: 30px;
+  flex-direction: column;
+}
+.heading {
+  font-family: 'Rubik', sans-serif;
+  color: #e76b74;
+  font-size: 60px;
+}
+.column-container {
+  display: flex;
   flex-direction: row;
 }
-.graph-left {
-  
+.graph-column {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  padding: 30px;
+}
+.graph {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  align-items: center;
+  margin-bottom: 100px;
 }
 .graph-title {
   font-family: 'Rubik', sans-serif;
   color: #e76b74;
-  font-size: 30px;
+  font-size: 24px;
+  margin-bottom: 10px;
+}
+.filler-counter {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  align-items: center;
+}
+.fillers {
+  font-family: 'Rubik', sans-serif;
+  color: #e76b74;
+  font-size: 60px;
+}
+.subtitle {
+  font-family: 'Rubik', sans-serif;
+  color: #e76b74;
+  font-size: 20px;
 }
