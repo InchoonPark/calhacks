@@ -1,0 +1,14 @@
+.graph-container {
+  display: flex;
+  flex: 1;
+  padding: 30px;
+  flex-direction: row;
+}
+.graph-left {
+  
+}
+.graph-title {
+  font-family: 'Rubik', sans-serif;
+  color: #e76b74;
+  font-size: 30px;
+}

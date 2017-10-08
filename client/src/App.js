@@ -4,16 +4,16 @@ import {
   Route,
   Link
 } from 'react-router-dom'
-import Home from './routes/Home'
 import Present from './routes/Present'
+import Graph from './routes/Graph'
 
 class App extends Component {
   render() {
     return (
       <Router>
         <div>
-          <Route exact path="/" component={Home}/>
-          <Route path="/present" component={Present}/>
+          <Route exact path="/" component={Present}/>
+          <Route exact path="/graph" component={Graph} />
         </div>
       </Router>
     )

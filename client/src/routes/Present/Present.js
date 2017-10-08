@@ -14,8 +14,11 @@ const ToastMessageFactory = React.createFactory(ReactToastr.ToastMessage.animati
 
 export default class Present extends Component {
   state = {
+    elapsed: 0,
     recording: false,
-    currentEmotion: null
+    emotion: 'neutral',
+    wpm: 0,
+    fillers: 0
   }
   async componentDidMount() {
     window.Initialize(SDK => {
@@ -32,11 +35,29 @@ export default class Present extends Component {
     }
   }
   handleRecord = () => {
+    this.setState({ recording: true })
+
+    setInterval(() => {
+      this.setState({ elapsed: this.state.elapsed + 1 })
+    }, 1000)
+
     this._recognizer.Recognize(event => {
       const { name } = event
 
       if(name === 'SpeechSimplePhraseEvent') {
-        console.log(event)
+        const { DisplayText, Duration } = event.result
+        const words = DisplayText.toLowerCase().split(' ')
+        let fillers = 0;
+        for(let i = 0; i < words.length; i++) {
+            if(words[i] === 'uh' || words[i] === 'um') {
+              fillers++
+            }
+        }
+        this.setState({ fillers: this.state.fillers + fillers })
+      }
+
+      if(name === 'RecognitionEndedEvent') {
+        console.log('ended')
       }
     })
     .On(() => {
@@ -65,21 +86,23 @@ export default class Present extends Component {
         return response.json()
       })
       .then(result => {
-        console.log(result)
-        /*if(result.length !== 0) {
-          this.container.success(
-            "my-title",
-            "my-fascinating-toast-message", {
-            timeOut: 5000,
-            extendedTimeOut: 3000
+        if(result.length !== 0) {
+          const maxScore = Math.max(...Object.values(result[0].scores))
+
+          Object.entries(result[0].scores).map(([key, value]) => {
+            if(value === maxScore) {
+              this.setState({ emotion: key})
+              return
+            }
           })
-          console.log(result[0].scores)
-        }*/
+        }
       })
     }, 2000)
   }
   render() {
-    const { recording } = this.state
+    const { recording, elapsed, emotion, fillers } = this.state
+    const minutes = Math.floor(elapsed / 60).toString().padStart(2, '0')
+    const seconds = (elapsed % 60).toString().padStart(2, '0')
 
     return (
       <div className='container'>
@@ -88,24 +111,28 @@ export default class Present extends Component {
           className="toast-top-right"
           preventDuplicates="true" />
         <video autoPlay muted={true} className='video'></video>
-        <canvas width={window.outerWidth} height={window.outerHeight} style={{display: 'none'}}></canvas>
-        <div className='stats-container'>
-          <div className='stat'>
-            <h4 className='stat-title'>Emotion</h4>
-            <p className='stat-item'>Swag</p>
+        <canvas width={window.outerWidth} height={window.outerHeight} style={{display: 'none'}}/>
+        {recording &&
+          <div>
+            <div className='stats-container'>
+              <div className='stat'>
+                <h4 className='stat-title'>Emotion</h4>
+                <p className='stat-item emotion-item'>{emotion}</p>
+              </div>
+              <div className='stat'>
+                <h4 className='stat-title'>WPM</h4>
+                <p className='stat-item'>70</p>
+              </div>
+              <div className='stat'>
+                <h4 className='stat-title'>Fillers</h4>
+                <p className='stat-item'>{fillers}</p>
+              </div>
+            </div>
+            <div className='timer-container'>
+              <h3 className='timer'>{minutes}:{seconds}</h3>
+            </div>
           </div>
-          <div className='stat'>
-            <h4 className='stat-title'>WPM</h4>
-            <p className='stat-item'>70</p>
-          </div>
-          <div className='stat'>
-            <h4 className='stat-title'>Fillers</h4>
-            <p className='stat-item'>1</p>
-          </div>
-        </div>
-        <div className='timer-container'>
-          <h3 className='timer'>00:32</h3>
-        </div>
+        }
         <button className='record-btn' onClick={this.handleRecord}>
           <Mic color={'white'} size={30} />
         </button>
