@@ -4,7 +4,6 @@ import {
   Route,
   Link
 } from 'react-router-dom'
-import './App.css';
 import Home from './routes/Home'
 import Present from './routes/Present'
 
